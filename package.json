@@ -1,0 +1,20 @@
+{
+  "name": "euroform",
+  "version": "1.0.0",
+  "description": "GDPR-compliant form builder for European businesses",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "client:dev": "cd client && npm run dev",
+    "server:dev": "cd server && npm run dev",
+    "client:build": "cd client && npm run build",
+    "server:start": "cd server && npm start",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install"
+  },
+  "keywords": ["forms", "gdpr", "saas", "europe"],
+  "author": "Euroform",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

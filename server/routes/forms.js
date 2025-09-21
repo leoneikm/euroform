@@ -1,0 +1,186 @@
+import express from 'express';
+import { supabaseAdmin } from '../config/supabase.js';
+import { verifyToken } from './auth.js';
+import { v4 as uuidv4 } from 'uuid';
+
+const router = express.Router();
+
+// Get all forms for authenticated user
+router.get('/', verifyToken, async (req, res) => {
+  try {
+    // First, fetch forms quickly without joins
+    const { data: forms, error: formsError } = await supabaseAdmin
+      .from('forms')
+      .select('id, name, description, fields, settings, is_active, created_at, updated_at')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (formsError) throw formsError;
+
+    if (!forms || forms.length === 0) {
+      return res.json({ forms: [] });
+    }
+
+    // Get submission counts in a separate, optimized query
+    const formIds = forms.map(form => form.id);
+    const { data: submissionCounts, error: countsError } = await supabaseAdmin
+      .from('submissions')
+      .select('form_id')
+      .in('form_id', formIds);
+
+    if (countsError) {
+      console.warn('Error fetching submission counts:', countsError);
+      // Continue without counts rather than failing
+    }
+
+    // Count submissions per form
+    const countMap = {};
+    if (submissionCounts) {
+      submissionCounts.forEach(submission => {
+        countMap[submission.form_id] = (countMap[submission.form_id] || 0) + 1;
+      });
+    }
+
+    // Combine forms with their submission counts
+    const formsWithCounts = forms.map(form => ({
+      ...form,
+      submission_count: countMap[form.id] || 0
+    }));
+
+    res.json({ forms: formsWithCounts });
+  } catch (error) {
+    console.error('Error fetching forms:', error);
+    res.status(500).json({ error: 'Error loading forms' });
+  }
+});
+
+// Get single form by ID (public endpoint for embedding)
+router.get('/:id', async (req, res) => {
+  try {
+    // Set cache headers for better performance
+    res.set({
+      'Cache-Control': 'public, max-age=300, s-maxage=300', // Cache for 5 minutes
+      'ETag': `"form-${req.params.id}"`,
+      'Vary': 'Accept'
+    });
+
+    // Check if client has cached version
+    if (req.headers['if-none-match'] === `"form-${req.params.id}"`) {
+      return res.status(304).end();
+    }
+
+    const { data: form, error } = await supabaseAdmin
+      .from('forms')
+      .select('id, name, description, fields, settings, is_active, created_at, updated_at')
+      .eq('id', req.params.id)
+      .eq('is_active', true)
+      .single();
+
+    if (error || !form) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+
+    // Don't expose user_id in public endpoint and only send necessary data
+    const publicForm = {
+      id: form.id,
+      name: form.name,
+      description: form.description,
+      fields: form.fields,
+      settings: form.settings
+    };
+    
+    res.json({ form: publicForm });
+  } catch (error) {
+    console.error('Error fetching form:', error);
+    res.status(500).json({ error: 'Error loading form' });
+  }
+});
+
+// Create new form
+router.post('/', verifyToken, async (req, res) => {
+  try {
+    const { name, description, fields, settings } = req.body;
+
+    if (!name || !fields || !Array.isArray(fields)) {
+      return res.status(400).json({ 
+        error: 'Name and fields are required' 
+      });
+    }
+
+    const formId = uuidv4();
+    const { data: form, error } = await supabaseAdmin
+      .from('forms')
+      .insert([{
+        id: formId,
+        user_id: req.user.id,
+        name,
+        description: description || '',
+        fields,
+        settings: settings || {},
+        is_active: true,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.status(201).json({ form });
+  } catch (error) {
+    console.error('Error creating form:', error);
+    res.status(500).json({ error: 'Error creating form' });
+  }
+});
+
+// Update form
+router.put('/:id', verifyToken, async (req, res) => {
+  try {
+    const { name, description, fields, settings, is_active } = req.body;
+
+    const { data: form, error } = await supabaseAdmin
+      .from('forms')
+      .update({
+        name,
+        description,
+        fields,
+        settings,
+        is_active,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!form) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+
+    res.json({ form });
+  } catch (error) {
+    console.error('Error updating form:', error);
+    res.status(500).json({ error: 'Error updating form' });
+  }
+});
+
+// Delete form
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    const { error } = await supabaseAdmin
+      .from('forms')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id);
+
+    if (error) throw error;
+
+    res.json({ message: 'Form deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting form:', error);
+    res.status(500).json({ error: 'Error deleting form' });
+  }
+});
+
+export default router;
