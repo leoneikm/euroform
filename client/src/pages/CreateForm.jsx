@@ -4,6 +4,16 @@ import { useAuth } from '../contexts/AuthContext'
 import Layout from '../components/Layout'
 import { Plus, Trash2, Type, Mail, FileText, Upload, GripVertical } from 'lucide-react'
 
+// Utility function to generate field name from label
+const generateFieldName = (label) => {
+  if (!label) return ''
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+    .replace(/\s+/g, '_') // Replace spaces with underscores
+    .trim()
+}
+
 const fieldTypes = [
   { value: 'text', label: 'Text', icon: Type },
   { value: 'email', label: 'Email', icon: Mail },
@@ -26,7 +36,7 @@ const CreateForm = () => {
       successMessage: 'Thank you for your message!',
       allowFileUpload: true,
       notificationEmails: '',
-      primaryColor: '#6366f1' // Default indigo color
+      primaryColor: '#601033' // Default indigo color
     }
   })
 
@@ -34,7 +44,7 @@ const CreateForm = () => {
     const newField = {
       id: Date.now().toString(),
       type,
-      name: `field_${formData.fields.length + 1}`,
+      name: '',
       label: '',
       placeholder: '',
       required: false,
@@ -49,9 +59,24 @@ const CreateForm = () => {
   const updateField = (fieldId, updates) => {
     setFormData({
       ...formData,
-      fields: formData.fields.map(field =>
-        field.id === fieldId ? { ...field, ...updates } : field
-      )
+      fields: formData.fields.map(field => {
+        if (field.id === fieldId) {
+          const updatedField = { ...field, ...updates }
+          
+          // If label is being updated and field name is empty or matches generated name from old label
+          if (updates.label !== undefined) {
+            const oldGeneratedName = generateFieldName(field.label)
+            const shouldAutoSync = !field.name || field.name === oldGeneratedName
+            
+            if (shouldAutoSync) {
+              updatedField.name = generateFieldName(updates.label)
+            }
+          }
+          
+          return updatedField
+        }
+        return field
+      })
     })
   }
 
@@ -115,7 +140,7 @@ const CreateForm = () => {
     // Validate color format
     const colorRegex = /^#[0-9A-Fa-f]{6}$/
     if (formData.settings.primaryColor && !colorRegex.test(formData.settings.primaryColor)) {
-      setError('Primary color must be a valid hex color (e.g., #6366f1)')
+      setError('Primary color must be a valid hex color (e.g., #601033)')
       setLoading(false)
       return
     }
@@ -284,6 +309,22 @@ const CreateForm = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Field Name (internal)
+                        </label>
+                        <input
+                          type="text"
+                          value={field.name}
+                          onChange={(e) => updateField(field.id, { name: e.target.value })}
+                          className="input-field"
+                          placeholder="Auto-generated from label"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Used for data storage. Auto-syncs with label unless manually changed.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Placeholder
                         </label>
                         <input
@@ -292,19 +333,6 @@ const CreateForm = () => {
                           onChange={(e) => updateField(field.id, { placeholder: e.target.value })}
                           className="input-field"
                           placeholder="e.g. John Doe"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Field Name (internal)
-                        </label>
-                        <input
-                          type="text"
-                          value={field.name}
-                          onChange={(e) => updateField(field.id, { name: e.target.value })}
-                          className="input-field"
-                          placeholder="field_name"
                         />
                       </div>
 
@@ -410,7 +438,7 @@ const CreateForm = () => {
                       settings: { ...formData.settings, primaryColor: e.target.value }
                     })}
                     className="input-field flex-1"
-                    placeholder="#6366f1"
+                    placeholder="#601033"
                     pattern="^#[0-9A-Fa-f]{6}$"
                   />
                 </div>

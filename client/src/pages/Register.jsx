@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { FileText, Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react'
+import { FileText, Mail, Lock, AlertCircle, CheckCircle, User } from 'lucide-react'
+import euroformLogo from '../assets/euroform_logo.svg'
 
 const Register = () => {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -31,7 +33,7 @@ const Register = () => {
     }
 
     try {
-      const { error } = await signUp(email, password)
+      const { error } = await signUp(email, password, name)
       if (error) {
         if (error.message.includes('User already registered')) {
           setError('This email address is already registered')
@@ -54,9 +56,9 @@ const Register = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--secondary-bg)' }}>
         <div className="max-w-md w-full text-center">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <div className="card border-green-200" style={{ backgroundColor: 'var(--primary-bg)' }}>
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-green-900 mb-2">
               Registration successful!
@@ -71,31 +73,54 @@ const Register = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--secondary-bg)' }}>
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center">
-            <FileText className="h-12 w-12 text-primary-600" />
+            <img 
+              src={euroformLogo} 
+              alt="euroform logo" 
+              className="h-8"
+            />
           </div>
-          <h2 className="mt-4 text-3xl font-bold text-gray-900">
+          <h2 className="mt-6 text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
             Sign up for Euroform
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
             Create GDPR-compliant forms in minutes
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <div className="card">
+          <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-400 mr-3" />
               <span className="text-sm text-red-700">{error}</span>
             </div>
           )}
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="name" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                Full Name
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="input-field pl-10"
+                  placeholder="Your full name"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                 Email Address
               </label>
               <div className="relative">
@@ -114,7 +139,7 @@ const Register = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                 Password
               </label>
               <div className="relative">
@@ -130,13 +155,13 @@ const Register = () => {
                   placeholder="••••••••"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
                 At least 6 characters
               </p>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                 Confirm Password
               </label>
               <div className="relative">
@@ -165,20 +190,21 @@ const Register = () => {
             </button>
           </div>
 
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
+          <div className="text-center pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
               Already have an account?{' '}
-              <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
+              <Link to="/login" className="font-medium transition-colors" style={{ color: 'var(--primary-color)' }}>
                 Sign in now
               </Link>
             </p>
           </div>
 
-          <div className="text-xs text-gray-500 text-center">
+          <div className="text-xs text-center" style={{ color: 'var(--text-secondary)' }}>
             By registering, you agree to our privacy policy.
             Your data is processed exclusively within the EU.
           </div>
         </form>
+        </div>
       </div>
     </div>
   )

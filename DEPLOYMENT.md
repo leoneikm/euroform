@@ -160,12 +160,39 @@ Add to your server crontab:
 - [ ] CORS properly configured
 - [ ] No sensitive data in logs
 
-## GDPR Compliance
+## GDPR Compliance & Data Protection
 
-- ✅ Data stored in EU (Supabase EU)
-- ✅ Email service in EU (Mailjet)
-- ✅ Server hosted in EU (Hetzner)
-- ✅ File auto-deletion after 24h
-- ✅ User data deletion capability
-- ✅ Minimal data collection
-- ✅ No tracking cookies
+### Infrastructure & Data Processing
+- ✅ **Database**: Supabase EU (PostgreSQL in European Union)
+- ✅ **Application Hosting**: Hetzner Cloud (German data centers)
+- ✅ **File Storage**: Supabase Storage EU with encryption at rest
+- ✅ **Email Service**: Mailjet EU (European infrastructure only)
+- ✅ **CDN/Assets**: Served directly from Hetzner (no third-party CDNs)
+
+### Data Protection Measures
+- ✅ **Data Minimization**: Only essential data collected (forms, submissions, user accounts)
+- ✅ **Automatic Deletion**: Uploaded files deleted after 24 hours via cron job
+- ✅ **User Control**: Complete account and data deletion capability
+- ✅ **No Tracking**: Zero analytics, tracking pixels, or third-party scripts
+- ✅ **Encryption**: All data transmission via HTTPS/TLS
+- ✅ **Access Control**: Row-level security policies on all database operations
+
+### Legal Compliance
+- ✅ **Legal Basis**: Legitimate Interest (Art. 6(1)(f) GDPR)
+- ✅ **Data Controller**: Clearly identified in privacy policy
+- ✅ **User Rights**: Full implementation of GDPR rights (access, rectification, erasure, portability)
+- ✅ **Retention Policy**: Clear data retention periods defined
+- ✅ **Consent Management**: Transparent data processing information
+
+### Technical Security
+- ✅ **Database Security**: Supabase RLS policies prevent unauthorized access
+- ✅ **API Security**: Rate limiting and input validation
+- ✅ **File Security**: Upload restrictions and automatic cleanup
+- ✅ **Network Security**: Nginx configuration with security headers
+- ✅ **Environment Security**: Sensitive data in environment variables only
+
+### Monitoring & Compliance
+- ✅ **Audit Trail**: All database operations logged
+- ✅ **Data Breach Procedures**: Automated monitoring and alerting
+- ✅ **Regular Updates**: Security patches and dependency updates
+- ✅ **Documentation**: Complete privacy policy and terms of service

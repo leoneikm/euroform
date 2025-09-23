@@ -14,24 +14,40 @@ const FormSubmissions = () => {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetchSubmissions()
+    fetchFormAndSubmissions()
   }, [id])
 
-  const fetchSubmissions = async () => {
+  const fetchFormAndSubmissions = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/submissions/form/${id}`, {
+      // Fetch form details first to get field definitions using authenticated endpoint
+      const formResponse = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/forms/${id}/manage`, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'
         }
       })
 
-      if (!response.ok) {
+      if (!formResponse.ok) {
+        throw new Error('Form not found')
+      }
+
+      const formData = await formResponse.json()
+      setForm(formData.form)
+
+      // Fetch submissions
+      const submissionsResponse = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/submissions/form/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!submissionsResponse.ok) {
         throw new Error('Error loading submissions')
       }
 
-      const data = await response.json()
-      setSubmissions(data.submissions)
+      const submissionsData = await submissionsResponse.json()
+      setSubmissions(submissionsData.submissions)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -128,27 +144,33 @@ const FormSubmissions = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y" style={{borderColor: 'var(--border-color)'}}>
+              <thead style={{backgroundColor: 'var(--secondary-bg)'}}>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>
-                    Data
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>
-                    Files
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>
+                  {/* Dynamic columns for each form field */}
+                  {form?.fields?.filter(field => field.type !== 'file').map((field) => (
+                    <th key={field.id} className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>
+                      {field.label}
+                    </th>
+                  ))}
+                  {/* Show Files column if form has file fields */}
+                  {form?.fields?.some(field => field.type === 'file') && (
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>
+                      Files
+                    </th>
+                  )}
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{color: 'var(--text-secondary)'}}>
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y" style={{backgroundColor: 'var(--primary-bg)', borderColor: 'var(--border-color)'}}>
                 {submissions.map((submission) => (
-                  <tr key={submission.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{color: 'var(--text-primary)'}}>
+                  <tr key={submission.id} className="hover:bg-gray-50 transition-colors duration-200">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{color: 'var(--text-primary)'}}>
                       {new Date(submission.created_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'short',
@@ -157,48 +179,50 @@ const FormSubmissions = () => {
                         minute: '2-digit'
                       })}
                     </td>
-                    <td className="px-6 py-4 text-sm">
-                      <div className="max-w-xs">
-                        {Object.entries(submission.data || {}).map(([key, value]) => (
-                          <div key={key} className="mb-1">
-                            <strong style={{color: 'var(--text-primary)'}}>{key}:</strong> <span style={{color: 'var(--text-secondary)'}}>{value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {submission.files && submission.files.length > 0 ? (
-                        <div>
-                          {submission.files.map((file, index) => (
-                            <div key={index} className="flex items-center mb-1">
-                              <button
-                                onClick={() => downloadFile(submission.id, file.name)}
-                                className="flex items-center hover:underline transition-colors duration-200"
-                                style={{color: 'var(--primary-color)'}}
-                                onMouseEnter={(e) => e.target.style.color = 'var(--primary-hover)'}
-                                onMouseLeave={(e) => e.target.style.color = 'var(--primary-color)'}
-                                title="Download file"
-                              >
-                                <Download className="h-4 w-4 mr-1" />
-                                <div className="text-xs text-left">
-                                  <div className="font-medium" style={{color: 'var(--text-primary)'}}>{file.fieldName || 'File'}</div>
-                                  <div style={{color: 'var(--text-secondary)'}}>{file.name}</div>
-                                </div>
-                              </button>
-                            </div>
-                          ))}
+                    {/* Dynamic cells for each form field */}
+                    {form?.fields?.filter(field => field.type !== 'file').map((field) => (
+                      <td key={field.id} className="px-6 py-4 text-sm" style={{color: 'var(--text-primary)'}}>
+                        <div className="max-w-xs truncate font-normal" title={submission.data?.[field.name] || submission.data?.[field.label] || ''}>
+                          {submission.data?.[field.name] || submission.data?.[field.label] || (
+                            <span style={{color: 'var(--text-secondary)', opacity: 0.6}}>-</span>
+                          )}
                         </div>
-                      ) : (
-                        <span style={{color: 'var(--text-secondary)', opacity: 0.6}}>No files</span>
-                      )}
-                    </td>
+                      </td>
+                    ))}
+                    {/* Files column if form has file fields */}
+                    {form?.fields?.some(field => field.type === 'file') && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {submission.files && submission.files.length > 0 ? (
+                          <div>
+                            {submission.files.map((file, index) => (
+                              <div key={index} className="flex items-center mb-1">
+                                <button
+                                  onClick={() => downloadFile(submission.id, file.name)}
+                                  className="flex items-center hover:underline transition-colors duration-200"
+                                  style={{color: 'var(--primary-color)'}}
+                                  onMouseEnter={(e) => e.target.style.color = 'var(--primary-hover)'}
+                                  onMouseLeave={(e) => e.target.style.color = 'var(--primary-color)'}
+                                  title="Download file"
+                                >
+                                  <Download className="h-4 w-4 mr-1" />
+                                  <div className="text-xs text-left">
+                                    <div className="font-medium" style={{color: 'var(--text-primary)'}}>{file.fieldName || 'File'}</div>
+                                    <div style={{color: 'var(--text-secondary)'}}>{file.name}</div>
+                                  </div>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{color: 'var(--text-secondary)', opacity: 0.6}}>No files</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => deleteSubmission(submission.id)}
-                        className="transition-colors duration-200"
-                        style={{color: '#dc2626'}}
-                        onMouseEnter={(e) => e.target.style.color = '#991b1b'}
-                        onMouseLeave={(e) => e.target.style.color = '#dc2626'}
+                        className="p-2 rounded-lg transition-all duration-200 hover:bg-red-50 text-red-600 hover:text-red-700"
+                        title="Delete submission"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

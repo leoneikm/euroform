@@ -4,6 +4,16 @@
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- User profiles table to store additional user information
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id)
+);
+
 -- Forms table
 CREATE TABLE IF NOT EXISTS forms (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -29,6 +39,8 @@ CREATE TABLE IF NOT EXISTS submissions (
 );
 
 -- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS user_profiles_user_id_idx ON user_profiles(user_id);
+
 CREATE INDEX IF NOT EXISTS forms_user_id_idx ON forms(user_id);
 CREATE INDEX IF NOT EXISTS forms_is_active_idx ON forms(is_active);
 CREATE INDEX IF NOT EXISTS forms_created_at_idx ON forms(created_at DESC);
@@ -37,8 +49,23 @@ CREATE INDEX IF NOT EXISTS submissions_form_id_idx ON submissions(form_id);
 CREATE INDEX IF NOT EXISTS submissions_created_at_idx ON submissions(created_at DESC);
 
 -- Row Level Security (RLS) policies
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
+
+-- User profiles policies
+-- Users can only see and modify their own profile
+CREATE POLICY "Users can view their own profile" ON user_profiles
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own profile" ON user_profiles
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own profile" ON user_profiles
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own profile" ON user_profiles
+    FOR DELETE USING (auth.uid() = user_id);
 
 -- Forms policies
 -- Users can only see and modify their own forms
@@ -92,7 +119,12 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Create trigger to automatically update updated_at
+-- Create triggers to automatically update updated_at
+CREATE TRIGGER update_user_profiles_updated_at 
+    BEFORE UPDATE ON user_profiles 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_forms_updated_at 
     BEFORE UPDATE ON forms 
     FOR EACH ROW 

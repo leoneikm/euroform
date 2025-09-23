@@ -259,35 +259,55 @@ const AllSubmissions = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y" style={{ borderColor: 'var(--border-color)' }}>
+                <thead style={{ backgroundColor: 'var(--secondary-bg)' }}>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-1" />
                         Date
                       </div>
                     </th>
                     {selectedFormId === 'all' && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
                         Form
                       </th>
                     )}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Data
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Files
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {selectedFormId !== 'all' ? (
+                      /* Dynamic columns for specific form fields */
+                      <>
+                        {forms.find(f => f.id === selectedFormId)?.fields?.filter(field => field.type !== 'file').map((field) => (
+                          <th key={field.id} className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                            {field.label}
+                          </th>
+                        ))}
+                        {/* Show Files column if form has file fields */}
+                        {forms.find(f => f.id === selectedFormId)?.fields?.some(field => field.type === 'file') && (
+                          <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                            Files
+                          </th>
+                        )}
+                      </>
+                    ) : (
+                      /* Default columns for all forms view */
+                      <>
+                        <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                          Data
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                          Files
+                        </th>
+                      </>
+                    )}
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y" style={{ backgroundColor: 'var(--primary-bg)', borderColor: 'var(--border-color)' }}>
                   {submissions.map((submission) => (
-                    <tr key={submission.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <tr key={submission.id} className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                         {new Date(submission.created_at).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
@@ -317,79 +337,112 @@ const AllSubmissions = () => {
                           </div>
                         </td>
                       )}
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        <div className="max-w-xs">
-                          {Object.entries(submission.data || {}).slice(0, 3).map(([key, value]) => (
-                            <div key={key} className="mb-1 truncate">
-                              <strong style={{color: 'var(--text-primary)'}}>{key}:</strong> <span style={{color: 'var(--text-secondary)'}}>{value}</span>
-                            </div>
-                          ))}
-                          {Object.keys(submission.data || {}).length > 3 && (
-                            <div className="text-xs italic" style={{color: 'var(--text-secondary)'}}>
-                              +{Object.keys(submission.data || {}).length - 3} more fields
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {submission.files && submission.files.length > 0 ? (
-                          <div className="space-y-1">
-                            {submission.files.slice(0, 2).map((file, index) => (
-                              <button
-                                key={index}
-                                onClick={() => downloadFile(submission.id, file.name)}
-                                className="flex items-center hover:underline text-xs transition-colors duration-200"
-                                style={{color: 'var(--primary-color)'}}
-                                onMouseEnter={(e) => e.target.style.color = 'var(--primary-hover)'}
-                                onMouseLeave={(e) => e.target.style.color = 'var(--primary-color)'}
-                                title="Download file"
-                              >
-                                <Download className="h-3 w-3 mr-1" />
-                                <span className="truncate max-w-[100px]">
-                                  {file.name}
-                                </span>
-                              </button>
-                            ))}
-                            {submission.files.length > 2 && (
-                              <div className="text-xs" style={{color: 'var(--text-secondary)'}}>
-                                +{submission.files.length - 2} more files
+                      {selectedFormId !== 'all' ? (
+                        /* Dynamic cells for specific form fields */
+                        <>
+                          {forms.find(f => f.id === selectedFormId)?.fields?.filter(field => field.type !== 'file').map((field) => (
+                            <td key={field.id} className="px-6 py-4 text-sm" style={{ color: 'var(--text-primary)' }}>
+                              <div className="max-w-xs truncate font-normal" title={submission.data?.[field.name] || submission.data?.[field.label] || ''}>
+                                {submission.data?.[field.name] || submission.data?.[field.label] || (
+                                  <span style={{ color: 'var(--text-secondary)', opacity: 0.6 }}>-</span>
+                                )}
                               </div>
+                            </td>
+                          ))}
+                          {/* Files column if form has file fields */}
+                          {forms.find(f => f.id === selectedFormId)?.fields?.some(field => field.type === 'file') && (
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {submission.files && submission.files.length > 0 ? (
+                                <div className="space-y-1">
+                                  {submission.files.slice(0, 2).map((file, index) => (
+                                    <button
+                                      key={index}
+                                      onClick={() => downloadFile(submission.id, file.name)}
+                                      className="flex items-center hover:underline text-xs transition-colors duration-200"
+                                      style={{color: 'var(--primary-color)'}}
+                                      onMouseEnter={(e) => e.target.style.color = 'var(--primary-hover)'}
+                                      onMouseLeave={(e) => e.target.style.color = 'var(--primary-color)'}
+                                      title="Download file"
+                                    >
+                                      <Download className="h-3 w-3 mr-1" />
+                                      <span className="truncate max-w-[100px]">
+                                        {file.name}
+                                      </span>
+                                    </button>
+                                  ))}
+                                  {submission.files.length > 2 && (
+                                    <div className="text-xs" style={{color: 'var(--text-secondary)'}}>
+                                      +{submission.files.length - 2} more files
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs" style={{color: 'var(--text-secondary)', opacity: 0.6}}>No files</span>
+                              )}
+                            </td>
+                          )}
+                        </>
+                      ) : (
+                        /* Default cells for all forms view */
+                        <>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            <div className="max-w-xs">
+                              {Object.entries(submission.data || {}).slice(0, 3).map(([key, value]) => (
+                                <div key={key} className="mb-1 truncate">
+                                  <strong style={{color: 'var(--text-primary)'}}>{key}:</strong> <span style={{color: 'var(--text-secondary)'}}>{value}</span>
+                                </div>
+                              ))}
+                              {Object.keys(submission.data || {}).length > 3 && (
+                                <div className="text-xs italic" style={{color: 'var(--text-secondary)'}}>
+                                  +{Object.keys(submission.data || {}).length - 3} more fields
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {submission.files && submission.files.length > 0 ? (
+                              <div className="space-y-1">
+                                {submission.files.slice(0, 2).map((file, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => downloadFile(submission.id, file.name)}
+                                    className="flex items-center hover:underline text-xs transition-colors duration-200"
+                                    style={{color: 'var(--primary-color)'}}
+                                    onMouseEnter={(e) => e.target.style.color = 'var(--primary-hover)'}
+                                    onMouseLeave={(e) => e.target.style.color = 'var(--primary-color)'}
+                                    title="Download file"
+                                  >
+                                    <Download className="h-3 w-3 mr-1" />
+                                    <span className="truncate max-w-[100px]">
+                                      {file.name}
+                                    </span>
+                                  </button>
+                                ))}
+                                {submission.files.length > 2 && (
+                                  <div className="text-xs" style={{color: 'var(--text-secondary)'}}>
+                                    +{submission.files.length - 2} more files
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs" style={{color: 'var(--text-secondary)', opacity: 0.6}}>No files</span>
                             )}
-                          </div>
-                        ) : (
-                          <span className="text-xs" style={{color: 'var(--text-secondary)', opacity: 0.6}}>No files</span>
-                        )}
-                      </td>
+                          </td>
+                        </>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
                           <Link
                             to={`/forms/${submission.formId}/submissions`}
-                            className="p-1 rounded transition-colors duration-200"
-                            style={{color: 'var(--primary-color)'}}
-                            onMouseEnter={(e) => {
-                              e.target.style.color = 'var(--primary-hover)'
-                              e.target.style.backgroundColor = 'rgba(106, 0, 51, 0.05)'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.color = 'var(--primary-color)'
-                              e.target.style.backgroundColor = 'transparent'
-                            }}
+                            className="p-2 rounded-lg transition-all duration-200 hover:bg-gray-50"
+                            style={{ color: 'var(--primary-color)' }}
                             title="View in form context"
                           >
                             <Eye className="h-4 w-4" />
                           </Link>
                           <button
                             onClick={() => deleteSubmission(submission.id)}
-                            className="p-1 rounded transition-colors duration-200"
-                            style={{color: '#dc2626'}}
-                            onMouseEnter={(e) => {
-                              e.target.style.color = '#991b1b'
-                              e.target.style.backgroundColor = 'rgba(220, 38, 38, 0.05)'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.target.style.color = '#dc2626'
-                              e.target.style.backgroundColor = 'transparent'
-                            }}
+                            className="p-2 rounded-lg transition-all duration-200 hover:bg-red-50 text-red-600 hover:text-red-700"
                             title="Delete submission"
                           >
                             <Trash2 className="h-4 w-4" />

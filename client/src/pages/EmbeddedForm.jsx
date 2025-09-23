@@ -244,7 +244,7 @@ const EmbeddedForm = () => {
       name: field.name,
       required: field.required,
       placeholder: field.placeholder || '',
-      className: "euroform-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm transition-colors duration-200"
+      className: "euroform-input w-full px-3 py-2 border border-gray-300 rounded-md transition-colors duration-200"
     }
 
     switch (field.type) {
@@ -276,7 +276,7 @@ const EmbeddedForm = () => {
               type="file"
               multiple
               onChange={(e) => handleFileChange(field.name, e.target.files)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
             <p className="text-xs text-gray-500 mt-1">
               Maximum file size: 10MB
@@ -391,9 +391,11 @@ const EmbeddedForm = () => {
       </form>
 
       <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-        <p className="text-xs text-gray-500">
-          Powered by <span className="font-medium">Euroform</span> - GDPR-compliant forms
-        </p>
+        <div className="text-xs text-gray-500 space-y-1">
+          <p>
+            Powered by <span className="font-medium">euroform</span> - GDPR-compliant forms
+          </p>
+        </div>
       </div>
     </div>
   )

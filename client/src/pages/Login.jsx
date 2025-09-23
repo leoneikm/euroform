@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { FileText, Mail, Lock, AlertCircle } from 'lucide-react'
+import euroformLogo from '../assets/euroform_logo.svg'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -33,23 +34,25 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center gradient-bg py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--secondary-bg)' }}>
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center">
-            <div className="p-3 bg-blue-600 rounded-2xl shadow-lg">
-              <FileText className="h-8 w-8 text-white" />
-            </div>
+            <img 
+              src={euroformLogo} 
+              alt="euroform logo" 
+              className="h-8"
+            />
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+          <h2 className="mt-6 text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
             Sign in to Euroform
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
             GDPR-compliant forms for European businesses
           </p>
         </div>
 
-        <div className="card glass-effect shadow-xl">
+        <div className="card">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
@@ -60,7 +63,7 @@ const Login = () => {
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                 Email Address
               </label>
               <div className="relative">
@@ -79,7 +82,7 @@ const Login = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                 Password
               </label>
               <div className="relative">
@@ -108,10 +111,10 @@ const Login = () => {
               </button>
             </div>
 
-            <div className="text-center pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600">
+            <div className="text-center pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 Don't have an account?{' '}
-                <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                <Link to="/register" className="font-medium transition-colors" style={{ color: 'var(--primary-color)' }}>
                   Sign up now
                 </Link>
               </p>

@@ -141,7 +141,7 @@ window.addEventListener('message', function(e) {
       />
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-4">
           {Array.from({ length: 6 }).map((_, index) => (
             <FormCardSkeleton key={index} />
           ))}
@@ -149,7 +149,7 @@ window.addEventListener('message', function(e) {
       ) : forms.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-4">
           {forms.map((form) => (
             <FormCard
               key={form.id}

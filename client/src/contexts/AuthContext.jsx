@@ -13,14 +13,57 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
+  const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState(null)
 
+  // Helper function to fetch user profile
+  const fetchUserProfile = async (userId) => {
+    if (!userId) {
+      setUserProfile(null)
+      return
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Error fetching user profile:', error)
+      }
+      
+      setUserProfile(data || null)
+    } catch (err) {
+      console.error('Error fetching user profile:', err)
+      setUserProfile(null)
+    }
+  }
+
   useEffect(() => {
+    // Safety timeout to prevent loading from getting stuck
+    const timeoutId = setTimeout(() => {
+      console.warn('Auth loading timeout reached - forcing loading to false')
+      setLoading(false)
+    }, 15000) // 15 seconds timeout
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      try {
+        setSession(session)
+        setUser(session?.user ?? null)
+        await fetchUserProfile(session?.user?.id)
+      } catch (error) {
+        console.error('Error during initial session setup:', error)
+      } finally {
+        clearTimeout(timeoutId)
+        setLoading(false)
+      }
+    }).catch((error) => {
+      console.error('Error getting initial session:', error)
+      clearTimeout(timeoutId)
       setLoading(false)
     })
 
@@ -28,19 +71,34 @@ export const AuthProvider = ({ children }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
+      try {
+        setSession(session)
+        setUser(session?.user ?? null)
+        await fetchUserProfile(session?.user?.id)
+      } catch (error) {
+        console.error('Error during auth state change:', error)
+      } finally {
+        setLoading(false)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeoutId)
+    }
   }, [])
 
-  const signUp = async (email, password) => {
+  const signUp = async (email, password, name = '') => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
     })
+    
+    // If signup successful and we have a user, create their profile
+    if (data.user && !error && name.trim()) {
+      await createUserProfile(data.user.id, name.trim())
+    }
+    
     return { data, error }
   }
 
@@ -64,14 +122,69 @@ export const AuthProvider = ({ children }) => {
     return { data, error }
   }
 
+  const createUserProfile = async (userId, name) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .insert([{
+          user_id: userId,
+          name: name
+        }])
+        .select()
+        .single()
+      
+      if (!error) {
+        setUserProfile(data)
+      }
+      
+      return { data, error }
+    } catch (err) {
+      console.error('Error creating user profile:', err)
+      return { data: null, error: err }
+    }
+  }
+
+  const updateUserProfile = async (name) => {
+    if (!user?.id) return { data: null, error: new Error('No user logged in') }
+    
+    try {
+      console.log('Updating user profile for user:', user.id, 'with name:', name)
+      
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .upsert({
+          user_id: user.id,
+          name: name
+        }, {
+          onConflict: 'user_id'
+        })
+        .select()
+        .single()
+      
+      console.log('Update result:', { data, error })
+      
+      if (!error && data) {
+        setUserProfile(data)
+      }
+      
+      return { data, error }
+    } catch (err) {
+      console.error('Error updating user profile:', err)
+      return { data: null, error: err }
+    }
+  }
+
   const value = {
     user,
+    userProfile,
     session,
     loading,
     signUp,
     signIn,
     signOut,
     resetPassword,
+    createUserProfile,
+    updateUserProfile,
   }
 
   return (

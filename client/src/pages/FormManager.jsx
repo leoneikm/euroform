@@ -5,6 +5,16 @@ import Layout from '../components/Layout'
 import Loading from '../components/Loading'
 import { ArrowLeft, Save, ExternalLink, Copy, Plus, Edit2, X, Download, Trash2, Settings, BarChart3 } from 'lucide-react'
 
+// Utility function to generate field name from label
+const generateFieldName = (label) => {
+  if (!label) return ''
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+    .replace(/\s+/g, '_') // Replace spaces with underscores
+    .trim()
+}
+
 const FormManager = () => {
   const { id } = useParams()
   const { session } = useAuth()
@@ -33,8 +43,8 @@ const FormManager = () => {
 
   const fetchFormAndSubmissions = async () => {
     try {
-      // Fetch form details
-      const formResponse = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/forms/${id}`, {
+      // Fetch form details using authenticated endpoint
+      const formResponse = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/forms/${id}/manage`, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'
@@ -125,7 +135,8 @@ const FormManager = () => {
     const newField = {
       id: `field_${Date.now()}`,
       type: 'text',
-      label: 'New Field',
+      label: '',
+      name: '',
       placeholder: '',
       required: false,
       options: []
@@ -134,9 +145,24 @@ const FormManager = () => {
   }
 
   const updateField = (fieldId, updates) => {
-    setFields(fields.map(field => 
-      field.id === fieldId ? { ...field, ...updates } : field
-    ))
+    setFields(fields.map(field => {
+      if (field.id === fieldId) {
+        const updatedField = { ...field, ...updates }
+        
+        // If label is being updated and field name is empty or matches generated name from old label
+        if (updates.label !== undefined) {
+          const oldGeneratedName = generateFieldName(field.label)
+          const shouldAutoSync = !field.name || field.name === oldGeneratedName
+          
+          if (shouldAutoSync) {
+            updatedField.name = generateFieldName(updates.label)
+          }
+        }
+        
+        return updatedField
+      }
+      return field
+    }))
   }
 
   const removeField = (fieldId) => {
@@ -342,26 +368,32 @@ window.addEventListener('message', function(e) {
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y" style={{ borderColor: 'var(--border-color)' }}>
-                <thead className="bg-gray-50">
+                <thead style={{ backgroundColor: 'var(--secondary-bg)' }}>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
                       Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-                      Data
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-                      Files
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                    {/* Dynamic columns for each form field */}
+                    {form?.fields?.filter(field => field.type !== 'file').map((field) => (
+                      <th key={field.id} className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                        {field.label}
+                      </th>
+                    ))}
+                    {/* Show Files column if form has file fields */}
+                    {form?.fields?.some(field => field.type === 'file') && (
+                      <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                        Files
+                      </th>
+                    )}
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
+                <tbody className="divide-y" style={{ backgroundColor: 'var(--primary-bg)', borderColor: 'var(--border-color)' }}>
                   {submissions.map((submission) => (
-                    <tr key={submission.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
+                    <tr key={submission.id} className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                         {new Date(submission.created_at).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
@@ -370,42 +402,46 @@ window.addEventListener('message', function(e) {
                           minute: '2-digit'
                         })}
                       </td>
-                      <td className="px-6 py-4 text-sm" style={{ color: 'var(--text-primary)' }}>
-                        <div className="max-w-xs">
-                          {Object.entries(submission.data || {}).map(([key, value]) => (
-                            <div key={key} className="mb-1">
-                              <strong>{key}:</strong> {value}
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
-                        {submission.files && submission.files.length > 0 ? (
-                          <div>
-                            {submission.files.map((file, index) => (
-                              <div key={index} className="flex items-center mb-1">
-                                <button
-                                  onClick={() => downloadFile(submission.id, file.name)}
-                                  className="flex items-center text-blue-600 hover:text-blue-800 hover:underline"
-                                  title="Download file"
-                                >
-                                  <Download className="h-4 w-4 mr-1" />
-                                  <div className="text-xs text-left">
-                                    <div className="font-medium">{file.fieldName || 'File'}</div>
-                                    <div className="text-gray-500">{file.name}</div>
-                                  </div>
-                                </button>
-                              </div>
-                            ))}
+                      {/* Dynamic cells for each form field */}
+                      {form?.fields?.filter(field => field.type !== 'file').map((field) => (
+                        <td key={field.id} className="px-6 py-4 text-sm" style={{ color: 'var(--text-primary)' }}>
+                          <div className="max-w-xs truncate font-normal" title={submission.data?.[field.name] || submission.data?.[field.label] || ''}>
+                            {submission.data?.[field.name] || submission.data?.[field.label] || (
+                              <span style={{ color: 'var(--text-secondary)', opacity: 0.6 }}>-</span>
+                            )}
                           </div>
-                        ) : (
-                          <span className="text-gray-400">No files</span>
-                        )}
-                      </td>
+                        </td>
+                      ))}
+                      {/* Files column if form has file fields */}
+                      {form?.fields?.some(field => field.type === 'file') && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
+                          {submission.files && submission.files.length > 0 ? (
+                            <div>
+                              {submission.files.map((file, index) => (
+                                <div key={index} className="flex items-center mb-1">
+                                  <button
+                                    onClick={() => downloadFile(submission.id, file.name)}
+                                    className="flex items-center text-blue-600 hover:text-blue-800 hover:underline"
+                                    title="Download file"
+                                  >
+                                    <Download className="h-4 w-4 mr-1" />
+                                    <div className="text-xs text-left">
+                                      <div className="font-medium">{file.fieldName || 'File'}</div>
+                                      <div className="text-gray-500">{file.name}</div>
+                                    </div>
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">No files</span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
                           onClick={() => deleteSubmission(submission.id)}
-                          className="p-2 rounded-lg transition-all duration-200 hover:bg-red-50 text-red-600"
+                          className="p-2 rounded-lg transition-all duration-200 hover:bg-red-50 text-red-600 hover:text-red-700"
                           title="Delete submission"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -581,14 +617,30 @@ window.addEventListener('message', function(e) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-                          Label
+                          Label *
                         </label>
                         <input
                           type="text"
                           value={field.label}
                           onChange={(e) => updateField(field.id, { label: e.target.value })}
                           className="input-field"
+                          placeholder="e.g. Your Name"
                         />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                          Field Name (internal)
+                        </label>
+                        <input
+                          type="text"
+                          value={field.name || ''}
+                          onChange={(e) => updateField(field.id, { name: e.target.value })}
+                          className="input-field"
+                          placeholder="Auto-generated from label"
+                        />
+                        <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                          Used for data storage. Auto-syncs with label unless manually changed.
+                        </p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -618,6 +670,7 @@ window.addEventListener('message', function(e) {
                           value={field.placeholder || ''}
                           onChange={(e) => updateField(field.id, { placeholder: e.target.value })}
                           className="input-field"
+                          placeholder="e.g. John Doe"
                         />
                       </div>
                       <div className="flex items-center">

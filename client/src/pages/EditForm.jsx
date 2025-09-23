@@ -6,6 +6,16 @@ import Loading from '../components/Loading'
 import PageHeader from '../components/PageHeader'
 import { Save, Eye, ExternalLink, Copy, Trash2, Plus, Edit2, X } from 'lucide-react'
 
+// Utility function to generate field name from label
+const generateFieldName = (label) => {
+  if (!label) return ''
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+    .replace(/\s+/g, '_') // Replace spaces with underscores
+    .trim()
+}
+
 const EditForm = () => {
   const { id } = useParams()
   const { session } = useAuth()
@@ -34,7 +44,7 @@ const EditForm = () => {
 
   const fetchForm = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/forms/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/forms/${id}/manage`, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'
@@ -125,7 +135,8 @@ const EditForm = () => {
     const newField = {
       id: `field_${Date.now()}`,
       type: 'text',
-      label: 'New Field',
+      label: '',
+      name: '',
       placeholder: '',
       required: false,
       options: []
@@ -134,9 +145,24 @@ const EditForm = () => {
   }
 
   const updateField = (fieldId, updates) => {
-    setFields(fields.map(field => 
-      field.id === fieldId ? { ...field, ...updates } : field
-    ))
+    setFields(fields.map(field => {
+      if (field.id === fieldId) {
+        const updatedField = { ...field, ...updates }
+        
+        // If label is being updated and field name is empty or matches generated name from old label
+        if (updates.label !== undefined) {
+          const oldGeneratedName = generateFieldName(field.label)
+          const shouldAutoSync = !field.name || field.name === oldGeneratedName
+          
+          if (shouldAutoSync) {
+            updatedField.name = generateFieldName(updates.label)
+          }
+        }
+        
+        return updatedField
+      }
+      return field
+    }))
   }
 
   const removeField = (fieldId) => {
@@ -429,14 +455,30 @@ window.addEventListener('message', function(e) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-                        Label
+                        Label *
                       </label>
                       <input
                         type="text"
                         value={field.label}
                         onChange={(e) => updateField(field.id, { label: e.target.value })}
                         className="input-field"
+                        placeholder="e.g. Your Name"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                        Field Name (internal)
+                      </label>
+                      <input
+                        type="text"
+                        value={field.name || ''}
+                        onChange={(e) => updateField(field.id, { name: e.target.value })}
+                        className="input-field"
+                        placeholder="Auto-generated from label"
+                      />
+                      <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        Used for data storage. Auto-syncs with label unless manually changed.
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -466,6 +508,7 @@ window.addEventListener('message', function(e) {
                         value={field.placeholder || ''}
                         onChange={(e) => updateField(field.id, { placeholder: e.target.value })}
                         className="input-field"
+                        placeholder="e.g. John Doe"
                       />
                     </div>
                     <div className="flex items-center">

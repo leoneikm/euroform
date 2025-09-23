@@ -54,6 +54,27 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
+// Get single form by ID for authenticated user (can access inactive forms)
+router.get('/:id/manage', verifyToken, async (req, res) => {
+  try {
+    const { data: form, error } = await supabaseAdmin
+      .from('forms')
+      .select('id, name, description, fields, settings, is_active, created_at, updated_at')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (error || !form) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+
+    res.json({ form });
+  } catch (error) {
+    console.error('Error fetching form:', error);
+    res.status(500).json({ error: 'Error loading form' });
+  }
+});
+
 // Get single form by ID (public endpoint for embedding)
 router.get('/:id', async (req, res) => {
   try {

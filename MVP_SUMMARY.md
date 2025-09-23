@@ -57,13 +57,28 @@
 - User data isolation
 - Automatic cleanup functions
 
-## 🎯 GDPR Compliance Features
+## 🎯 GDPR Compliance & Privacy Features
 
-- ✅ **EU-only infrastructure** (Supabase EU, Mailjet EU, Hetzner deployment)
-- ✅ **Minimal data collection** (only form data + basic metadata)
-- ✅ **File auto-deletion** (24-hour cleanup function)
-- ✅ **User data control** (account deletion capability)
-- ✅ **No tracking cookies** or unnecessary data storage
+### Infrastructure (100% EU-based)
+- ✅ **Database**: Supabase EU (PostgreSQL in European data centers)
+- ✅ **Application Hosting**: Hetzner Cloud (German data centers)
+- ✅ **File Storage**: Supabase Storage EU with encryption at rest
+- ✅ **Email Processing**: Mailjet EU (European infrastructure only)
+- ✅ **No Third-Party Services**: No external CDNs, analytics, or tracking
+
+### Data Protection & Privacy
+- ✅ **Data Minimization**: Only essential data collected (forms, submissions, accounts)
+- ✅ **Automatic File Deletion**: 24-hour cleanup via automated cron job
+- ✅ **User Data Control**: Complete account and data deletion capability
+- ✅ **Zero Tracking**: No analytics, cookies, pixels, or behavioral tracking
+- ✅ **Transparent Processing**: Detailed privacy information in user settings
+
+### Legal & Technical Compliance
+- ✅ **GDPR Rights Implementation**: Access, rectification, erasure, portability
+- ✅ **Legal Basis**: Legitimate Interest (Art. 6(1)(f) GDPR)
+- ✅ **Security Measures**: End-to-end encryption, RLS policies, rate limiting
+- ✅ **Audit Trail**: Complete logging of data operations
+- ✅ **Retention Policies**: Clear data retention periods and automatic cleanup
 - ✅ **SSL/TLS encryption** everywhere
 - ✅ **Row Level Security** in database
 

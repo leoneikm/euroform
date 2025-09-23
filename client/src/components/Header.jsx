@@ -1,14 +1,17 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Settings, FileText, Plus, BarChart3, User, Bell } from 'lucide-react'
+import { FileText, Plus, BarChart3, User } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import euroformLogo from '../assets/euroform_logo.svg'
 
 const Header = () => {
-  const { user } = useAuth()
+  const { user, userProfile, signOut } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const navRefs = useRef({})
   const [activeNavPosition, setActiveNavPosition] = useState({ left: 0, width: 0 })
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const profileMenuRef = useRef(null)
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
@@ -16,6 +19,32 @@ const Header = () => {
   ]
 
   const isActive = (href) => location.pathname === href
+
+  const handleLogout = async () => {
+    try {
+      setShowProfileMenu(false)
+      const { error } = await signOut()
+      if (!error) {
+        navigate('/login')
+      }
+    } catch (err) {
+      console.error('Logout error:', err)
+    }
+  }
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   useEffect(() => {
     const activeNav = navigation.find(nav => isActive(nav.href))
@@ -65,25 +94,48 @@ const Header = () => {
               + New Form
             </Link>
             
-            <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
-              <Bell className="h-5 w-5" style={{ color: 'var(--text-secondary)' }} />
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-            </button>
-            
-            <Link 
-              to="/settings" 
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <Settings className="h-5 w-5" style={{ color: 'var(--text-secondary)' }} />
-            </Link>
-            
-            <div className="profile-section">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-                <User className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-sm font-normal hidden sm:block" style={{ color: 'var(--text-primary)' }}>
-                {user?.email?.split('@')[0] || 'User'}
-              </span>
+            <div className="relative" ref={profileMenuRef}>
+              <button 
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="profile-section hover:opacity-80 transition-opacity cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
+                  <User className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-sm font-normal hidden sm:block" style={{ color: 'var(--text-primary)' }}>
+                  {user?.email?.split('@')[0] || 'User'}
+                </span>
+              </button>
+              
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg z-50" style={{ backgroundColor: 'var(--primary-bg)', border: '1px solid var(--border-color)' }}>
+                  <div className="py-1">
+                    <div className="px-4 py-2 text-sm" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+                      <div className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                        {userProfile?.name || 'User'}
+                      </div>
+                      <div className="text-xs">
+                        {user?.email}
+                      </div>
+                    </div>
+                    <Link
+                      to="/settings"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      Settings
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
