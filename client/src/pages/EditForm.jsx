@@ -44,7 +44,7 @@ const EditForm = () => {
 
   const fetchForm = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/forms/${id}/manage`, {
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/forms/${id}?manage=true`, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'
@@ -63,7 +63,17 @@ const EditForm = () => {
         description: data.form.description || '',
         notificationEmails: data.form.settings?.notificationEmails || '',
         primaryColor: data.form.settings?.primaryColor || '#6366f1',
-        is_active: data.form.is_active ?? true
+        is_active: data.form.is_active ?? true,
+        // Input field design options with defaults
+        inputBorderRadius: data.form.settings?.inputBorderRadius || '6',
+        inputBorderColor: data.form.settings?.inputBorderColor || '#d1d5db',
+        inputHeight: data.form.settings?.inputHeight || '40',
+        inputBorderWidth: data.form.settings?.inputBorderWidth || '1',
+        // Button design options with defaults
+        buttonBorderRadius: data.form.settings?.buttonBorderRadius || '6',
+        buttonBorderColor: data.form.settings?.buttonBorderColor || (data.form.settings?.primaryColor || '#6366f1'),
+        buttonHeight: data.form.settings?.buttonHeight || '44',
+        buttonBorderWidth: data.form.settings?.buttonBorderWidth || '0'
       })
       setFields(data.form.fields || [])
     } catch (err) {
@@ -99,7 +109,16 @@ const EditForm = () => {
           settings: {
             ...form.settings,
             notificationEmails: updates.notificationEmails || formData.notificationEmails,
-            primaryColor: updates.primaryColor || formData.primaryColor
+            primaryColor: updates.primaryColor || formData.primaryColor,
+            // Include design options
+            inputBorderRadius: updates.inputBorderRadius || formData.inputBorderRadius,
+            inputBorderColor: updates.inputBorderColor || formData.inputBorderColor,
+            inputHeight: updates.inputHeight || formData.inputHeight,
+            inputBorderWidth: updates.inputBorderWidth || formData.inputBorderWidth,
+            buttonBorderRadius: updates.buttonBorderRadius || formData.buttonBorderRadius,
+            buttonBorderColor: updates.buttonBorderColor || formData.buttonBorderColor,
+            buttonHeight: updates.buttonHeight || formData.buttonHeight,
+            buttonBorderWidth: updates.buttonBorderWidth || formData.buttonBorderWidth
           },
           is_active: updates.is_active !== undefined ? updates.is_active : formData.is_active
         })
@@ -349,6 +368,192 @@ window.addEventListener('message', function(e) {
                   Form is active
                 </label>
               </div>
+
+              {/* Design Customization */}
+              <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--border-color)' }}>
+                <h4 className="text-md font-medium mb-4" style={{ color: 'var(--text-primary)' }}>Design Customization</h4>
+                
+                {/* Input Field Design */}
+                <div className="mb-6">
+                  <h5 className="text-sm font-medium mb-3" style={{ color: 'var(--text-primary)' }}>Input Field Styling</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                        Border Radius (px)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={formData.inputBorderRadius}
+                        onChange={(e) => setFormData({ ...formData, inputBorderRadius: e.target.value })}
+                        className="input-field"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                        Border Color
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="color"
+                          value={formData.inputBorderColor}
+                          onChange={(e) => setFormData({ ...formData, inputBorderColor: e.target.value })}
+                          className="w-10 h-10 border border-gray-300 rounded cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={formData.inputBorderColor}
+                          onChange={(e) => setFormData({ ...formData, inputBorderColor: e.target.value })}
+                          className="input-field flex-1"
+                          placeholder="#d1d5db"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                        Height (px)
+                      </label>
+                      <input
+                        type="number"
+                        min="30"
+                        max="80"
+                        value={formData.inputHeight}
+                        onChange={(e) => setFormData({ ...formData, inputHeight: e.target.value })}
+                        className="input-field"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                        Border Width (px)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="5"
+                        value={formData.inputBorderWidth}
+                        onChange={(e) => setFormData({ ...formData, inputBorderWidth: e.target.value })}
+                        className="input-field"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Button Design */}
+                <div className="mb-6">
+                  <h5 className="text-sm font-medium mb-3" style={{ color: 'var(--text-primary)' }}>Button Styling</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                        Border Radius (px)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={formData.buttonBorderRadius}
+                        onChange={(e) => setFormData({ ...formData, buttonBorderRadius: e.target.value })}
+                        className="input-field"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                        Border Color
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="color"
+                          value={formData.buttonBorderColor}
+                          onChange={(e) => setFormData({ ...formData, buttonBorderColor: e.target.value })}
+                          className="w-10 h-10 border border-gray-300 rounded cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={formData.buttonBorderColor}
+                          onChange={(e) => setFormData({ ...formData, buttonBorderColor: e.target.value })}
+                          className="input-field flex-1"
+                          placeholder="#6366f1"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                        Height (px)
+                      </label>
+                      <input
+                        type="number"
+                        min="30"
+                        max="80"
+                        value={formData.buttonHeight}
+                        onChange={(e) => setFormData({ ...formData, buttonHeight: e.target.value })}
+                        className="input-field"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                        Border Width (px)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="5"
+                        value={formData.buttonBorderWidth}
+                        onChange={(e) => setFormData({ ...formData, buttonBorderWidth: e.target.value })}
+                        className="input-field"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preview Section */}
+                <div>
+                  <h5 className="text-sm font-medium mb-3" style={{ color: 'var(--text-primary)' }}>Preview</h5>
+                  <div className="bg-gray-50 p-4 rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
+                    <div className="space-y-4 max-w-md">
+                      <div>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Sample Input</label>
+                        <input
+                          type="text"
+                          placeholder="This is how your input will look"
+                          readOnly
+                          style={{
+                            borderRadius: `${formData.inputBorderRadius}px`,
+                            borderColor: formData.inputBorderColor,
+                            height: `${formData.inputHeight}px`,
+                            borderWidth: `${formData.inputBorderWidth}px`,
+                            padding: '0 12px'
+                          }}
+                          className="w-full border focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <button
+                          type="button"
+                          style={{
+                            borderRadius: `${formData.buttonBorderRadius}px`,
+                            borderColor: formData.buttonBorderColor,
+                            height: `${formData.buttonHeight}px`,
+                            borderWidth: `${formData.buttonBorderWidth}px`,
+                            backgroundColor: formData.primaryColor,
+                            color: 'white',
+                            padding: '0 16px',
+                            fontWeight: '500'
+                          }}
+                          className="border transition-colors duration-200"
+                        >
+                          {form?.settings?.submitButtonText || 'Submit'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div className="flex space-x-3">
                 <button onClick={saveBasicInfo} className="btn-primary">
                   Save Changes
@@ -361,7 +566,16 @@ window.addEventListener('message', function(e) {
                       description: form?.description || '',
                       notificationEmails: form?.settings?.notificationEmails || '',
                       primaryColor: form?.settings?.primaryColor || '#6366f1',
-                      is_active: form?.is_active ?? true
+                      is_active: form?.is_active ?? true,
+                      // Reset design options
+                      inputBorderRadius: form?.settings?.inputBorderRadius || '6',
+                      inputBorderColor: form?.settings?.inputBorderColor || '#d1d5db',
+                      inputHeight: form?.settings?.inputHeight || '40',
+                      inputBorderWidth: form?.settings?.inputBorderWidth || '1',
+                      buttonBorderRadius: form?.settings?.buttonBorderRadius || '6',
+                      buttonBorderColor: form?.settings?.buttonBorderColor || (form?.settings?.primaryColor || '#6366f1'),
+                      buttonHeight: form?.settings?.buttonHeight || '44',
+                      buttonBorderWidth: form?.settings?.buttonBorderWidth || '0'
                     })
                   }} 
                   className="btn-secondary"

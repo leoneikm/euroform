@@ -19,8 +19,8 @@ const FormSubmissions = () => {
 
   const fetchFormAndSubmissions = async () => {
     try {
-      // Fetch form details first to get field definitions using authenticated endpoint
-      const formResponse = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/forms/${id}/manage`, {
+      // Fetch form details first to get field definitions using authenticated endpoint with manage query parameter
+      const formResponse = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'}/api/forms/${id}?manage=true`, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'

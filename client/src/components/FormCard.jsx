@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Trash2, ExternalLink, Copy, MessageSquare, Hash, MoreHorizontal } from 'lucide-react'
+import { FileText, Trash2, ExternalLink, Copy, MessageSquare, Hash, MoreHorizontal, Clock } from 'lucide-react'
+import { formatCardDate } from '../utils/dateUtils'
 
 const FormCard = ({ form, onDelete, onCopyEmbed }) => {
   const [showDropdown, setShowDropdown] = useState(false)
@@ -43,6 +44,11 @@ const FormCard = ({ form, onDelete, onCopyEmbed }) => {
             {form.submission_count || 0} Submissions
           </span>
 
+          <span className="flex items-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <Clock className="h-3.5 w-3.5 mr-1" />
+            {formatCardDate(form.updated_at)}
+          </span>
+
 
           <div className="relative">
             <button
@@ -68,7 +74,7 @@ const FormCard = ({ form, onDelete, onCopyEmbed }) => {
                   Copy Embed Code
                 </button>
                 <a
-                  href={`/form/${form.id}`}
+                  href={`/preview/${form.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center w-full px-4 py-2 text-sm hover:bg-gray-50"

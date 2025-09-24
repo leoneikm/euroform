@@ -8,6 +8,7 @@ import FormManager from './pages/FormManager'
 import AllSubmissions from './pages/AllSubmissions'
 import Settings from './pages/Settings'
 import EmbeddedForm from './pages/EmbeddedForm'
+import FormPreview from './pages/FormPreview'
 import Loading from './components/Loading'
 
 // Protected Route Component
@@ -46,6 +47,9 @@ function AppRoutes() {
       <Routes>
         {/* Embedded Form Route (public, no background styling) */}
         <Route path="/form/:formId" element={<EmbeddedForm />} />
+        
+        {/* Form Preview Route (public, with proper styling) */}
+        <Route path="/preview/:formId" element={<FormPreview />} />
         
         {/* All other routes with background styling */}
         <Route path="/*" element={

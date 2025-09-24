@@ -49,8 +49,16 @@ app.use('/api/auth', authRouter);
 app.use('/api/forms', formsRouter);
 app.use('/api/submissions', submissionsRouter);
 
-// Health check
+// Health check (both /health and /api/health for compatibility)
 app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
     timestamp: new Date().toISOString(),

@@ -25,11 +25,18 @@ export const AuthProvider = ({ children }) => {
     }
     
     try {
+      // Add timeout to profile fetch to prevent hanging
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', userId)
+        .abortSignal(controller.signal)
         .single()
+      
+      clearTimeout(timeoutId)
       
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
         console.error('Error fetching user profile:', error)
@@ -37,35 +44,71 @@ export const AuthProvider = ({ children }) => {
       
       setUserProfile(data || null)
     } catch (err) {
-      console.error('Error fetching user profile:', err)
+      if (err.name === 'AbortError') {
+        console.warn('User profile fetch timed out')
+      } else {
+        console.error('Error fetching user profile:', err)
+      }
       setUserProfile(null)
     }
   }
 
   useEffect(() => {
-    // Safety timeout to prevent loading from getting stuck
-    const timeoutId = setTimeout(() => {
-      console.warn('Auth loading timeout reached - forcing loading to false')
-      setLoading(false)
-    }, 15000) // 15 seconds timeout
+    let timeoutId
+    let isMounted = true
 
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    const initializeAuth = async () => {
       try {
-        setSession(session)
-        setUser(session?.user ?? null)
-        await fetchUserProfile(session?.user?.id)
+        // Increased timeout and better error handling
+        timeoutId = setTimeout(() => {
+          if (isMounted) {
+            console.warn('Auth loading timeout reached - forcing loading to false')
+            setLoading(false)
+          }
+        }, 30000) // Increased to 30 seconds
+
+        // Get initial session with better error handling
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('Error getting session:', error)
+          if (isMounted) {
+            setLoading(false)
+          }
+          return
+        }
+
+        if (isMounted) {
+          setSession(session)
+          setUser(session?.user ?? null)
+          
+          // Only fetch profile if user exists and component is still mounted
+          if (session?.user?.id) {
+            try {
+              await fetchUserProfile(session.user.id)
+            } catch (profileError) {
+              console.error('Error fetching user profile:', profileError)
+              // Don't fail auth if profile fetch fails
+            }
+          }
+        }
       } catch (error) {
         console.error('Error during initial session setup:', error)
       } finally {
-        clearTimeout(timeoutId)
-        setLoading(false)
+        if (timeoutId) clearTimeout(timeoutId)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
-    }).catch((error) => {
-      console.error('Error getting initial session:', error)
-      clearTimeout(timeoutId)
-      setLoading(false)
-    })
+    }
+
+    initializeAuth()
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isMounted = false
+      if (timeoutId) clearTimeout(timeoutId)
+    }
 
     // Listen for auth changes
     const {

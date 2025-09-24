@@ -15,31 +15,46 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(preconnectLink)
 }
 
-// Helper function to apply custom CSS variables for theming
-const applyCustomColors = (primaryColor) => {
-  if (typeof document !== 'undefined' && primaryColor) {
+// Helper function to apply custom CSS variables for theming and design options
+const applyCustomStyles = (settings) => {
+  if (typeof document !== 'undefined' && settings) {
+    const {
+      primaryColor,
+      inputBorderRadius = '6',
+      inputBorderColor = '#d1d5db',
+      inputHeight = '40',
+      inputBorderWidth = '1',
+      buttonBorderRadius = '6',
+      buttonBorderColor,
+      buttonHeight = '44',
+      buttonBorderWidth = '0'
+    } = settings
+    
     const root = document.documentElement
-    root.style.setProperty('--form-primary-color', primaryColor)
     
-    // Generate lighter and darker variants
-    const hex = primaryColor.replace('#', '')
-    const r = parseInt(hex.substr(0, 2), 16)
-    const g = parseInt(hex.substr(2, 2), 16)
-    const b = parseInt(hex.substr(4, 2), 16)
+    if (primaryColor) {
+      root.style.setProperty('--form-primary-color', primaryColor)
+      
+      // Generate lighter and darker variants
+      const hex = primaryColor.replace('#', '')
+      const r = parseInt(hex.substr(0, 2), 16)
+      const g = parseInt(hex.substr(2, 2), 16)
+      const b = parseInt(hex.substr(4, 2), 16)
+      
+      // Create hover color (slightly darker)
+      const hoverR = Math.max(0, r - 20)
+      const hoverG = Math.max(0, g - 20)
+      const hoverB = Math.max(0, b - 20)
+      const hoverColor = `#${hoverR.toString(16).padStart(2, '0')}${hoverG.toString(16).padStart(2, '0')}${hoverB.toString(16).padStart(2, '0')}`
+      
+      // Create focus color (with transparency)
+      const focusColor = `rgba(${r}, ${g}, ${b}, 0.1)`
+      
+      root.style.setProperty('--form-primary-hover', hoverColor)
+      root.style.setProperty('--form-primary-focus', focusColor)
+    }
     
-    // Create hover color (slightly darker)
-    const hoverR = Math.max(0, r - 20)
-    const hoverG = Math.max(0, g - 20)
-    const hoverB = Math.max(0, b - 20)
-    const hoverColor = `#${hoverR.toString(16).padStart(2, '0')}${hoverG.toString(16).padStart(2, '0')}${hoverB.toString(16).padStart(2, '0')}`
-    
-    // Create focus color (with transparency)
-    const focusColor = `rgba(${r}, ${g}, ${b}, 0.1)`
-    
-    root.style.setProperty('--form-primary-hover', hoverColor)
-    root.style.setProperty('--form-primary-focus', focusColor)
-    
-    // Inject custom styles for focus states
+    // Inject custom styles for inputs and buttons
     let styleElement = document.getElementById('euroform-custom-styles')
     if (!styleElement) {
       styleElement = document.createElement('style')
@@ -47,17 +62,44 @@ const applyCustomColors = (primaryColor) => {
       document.head.appendChild(styleElement)
     }
     
+    const finalButtonBorderColor = buttonBorderColor || primaryColor || '#6366f1'
+    
     styleElement.textContent = `
+      .euroform-input {
+        border-radius: ${inputBorderRadius}px !important;
+        border-color: ${inputBorderColor} !important;
+        height: ${inputHeight}px !important;
+        border-width: ${inputBorderWidth}px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+      }
       .euroform-input:focus {
         outline: none !important;
-        border-color: ${primaryColor} !important;
-        box-shadow: 0 0 0 2px ${focusColor} !important;
+        border-color: ${primaryColor || '#6366f1'} !important;
+        box-shadow: 0 0 0 2px ${primaryColor ? `rgba(${parseInt(primaryColor.slice(1, 3), 16)}, ${parseInt(primaryColor.slice(3, 5), 16)}, ${parseInt(primaryColor.slice(5, 7), 16)}, 0.1)` : 'rgba(99, 102, 241, 0.1)'} !important;
+      }
+      .euroform-textarea {
+        border-radius: ${inputBorderRadius}px !important;
+        border-color: ${inputBorderColor} !important;
+        border-width: ${inputBorderWidth}px !important;
+        padding: 12px !important;
+      }
+      .euroform-textarea:focus {
+        outline: none !important;
+        border-color: ${primaryColor || '#6366f1'} !important;
+        box-shadow: 0 0 0 2px ${primaryColor ? `rgba(${parseInt(primaryColor.slice(1, 3), 16)}, ${parseInt(primaryColor.slice(3, 5), 16)}, ${parseInt(primaryColor.slice(5, 7), 16)}, 0.1)` : 'rgba(99, 102, 241, 0.1)'} !important;
       }
       .euroform-button {
-        background-color: ${primaryColor} !important;
+        background-color: ${primaryColor || '#6366f1'} !important;
+        border-radius: ${buttonBorderRadius}px !important;
+        border-color: ${finalButtonBorderColor} !important;
+        height: ${buttonHeight}px !important;
+        border-width: ${buttonBorderWidth}px !important;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
       }
       .euroform-button:hover:not(:disabled) {
-        background-color: ${hoverColor} !important;
+        background-color: ${primaryColor ? `#${Math.max(0, parseInt(primaryColor.slice(1, 3), 16) - 20).toString(16).padStart(2, '0')}${Math.max(0, parseInt(primaryColor.slice(3, 5), 16) - 20).toString(16).padStart(2, '0')}${Math.max(0, parseInt(primaryColor.slice(5, 7), 16) - 20).toString(16).padStart(2, '0')}` : '#4f46e5'} !important;
       }
     `
   }
@@ -118,10 +160,10 @@ const EmbeddedForm = () => {
     }
   }, [formId, fetchForm])
 
-  // Apply custom colors when form loads
+  // Apply custom styles when form loads
   useEffect(() => {
-    if (form?.settings?.primaryColor) {
-      applyCustomColors(form.settings.primaryColor)
+    if (form?.settings) {
+      applyCustomStyles(form.settings)
     }
   }, [form])
 
@@ -244,7 +286,7 @@ const EmbeddedForm = () => {
       name: field.name,
       required: field.required,
       placeholder: field.placeholder || '',
-      className: "euroform-input w-full px-3 py-2 border border-gray-300 rounded-md transition-colors duration-200"
+      className: "euroform-input w-full border border-gray-300 transition-colors duration-200"
     }
 
     switch (field.type) {
@@ -265,6 +307,7 @@ const EmbeddedForm = () => {
             rows="4"
             value={formData[field.name] || ''}
             onChange={(e) => handleInputChange(field.name, e.target.value)}
+            className="euroform-textarea w-full border border-gray-300 transition-colors duration-200"
           />
         )
       
@@ -276,7 +319,7 @@ const EmbeddedForm = () => {
               type="file"
               multiple
               onChange={(e) => handleFileChange(field.name, e.target.files)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="euroform-input w-full border border-gray-300 transition-colors duration-200 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
             <p className="text-xs text-gray-500 mt-1">
               Maximum file size: 10MB
@@ -373,7 +416,7 @@ const EmbeddedForm = () => {
           <button
             type="submit"
             disabled={submitting}
-            className="euroform-button w-full text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            className="euroform-button w-full text-white font-medium border transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {submitting ? (
               <>

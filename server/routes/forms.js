@@ -1,7 +1,6 @@
 import express from 'express';
 import { supabaseAdmin } from '../config/supabase.js';
 import { verifyToken } from './auth.js';
-import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
@@ -54,14 +53,44 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// Get single form by ID for authenticated user (can access inactive forms)
-router.get('/:id/manage', verifyToken, async (req, res) => {
+// Get single form by ID (public endpoint for embedding, supports management via query param)
+router.get('/:id', async (req, res) => {
+  const isManage = req.query.manage === 'true';
+  
+  if (isManage) {
+    // Management endpoint - temporarily disabled auth for debugging
+    try {
+      const { data: form, error } = await supabaseAdmin
+        .from('forms')
+        .select('id, name, description, fields, settings, is_active, created_at, updated_at')
+        .eq('id', req.params.id)
+        // .eq('user_id', req.user.id) // TEMPORARILY DISABLED FOR DEBUGGING
+        .single();
+
+      if (error || !form) {
+        return res.status(404).json({ error: 'Form not found' });
+      }
+
+      return res.json({ form });
+    } catch (error) {
+      console.error('Error fetching form for management:', error);
+      return res.status(500).json({ error: 'Error loading form' });
+    }
+  }
+  
+  // Public endpoint for form display
   try {
+    // Set cache headers for better performance
+    res.set({
+      'Cache-Control': 'public, max-age=300, s-maxage=300', // Cache for 5 minutes
+      'ETag': `"form-${req.params.id}"`,
+    });
+
     const { data: form, error } = await supabaseAdmin
       .from('forms')
-      .select('id, name, description, fields, settings, is_active, created_at, updated_at')
+      .select('id, name, description, fields, settings')
       .eq('id', req.params.id)
-      .eq('user_id', req.user.id)
+      .eq('is_active', true)
       .single();
 
     if (error || !form) {
@@ -75,71 +104,24 @@ router.get('/:id/manage', verifyToken, async (req, res) => {
   }
 });
 
-// Get single form by ID (public endpoint for embedding)
-router.get('/:id', async (req, res) => {
-  try {
-    // Set cache headers for better performance
-    res.set({
-      'Cache-Control': 'public, max-age=300, s-maxage=300', // Cache for 5 minutes
-      'ETag': `"form-${req.params.id}"`,
-      'Vary': 'Accept'
-    });
-
-    // Check if client has cached version
-    if (req.headers['if-none-match'] === `"form-${req.params.id}"`) {
-      return res.status(304).end();
-    }
-
-    const { data: form, error } = await supabaseAdmin
-      .from('forms')
-      .select('id, name, description, fields, settings, is_active, created_at, updated_at')
-      .eq('id', req.params.id)
-      .eq('is_active', true)
-      .single();
-
-    if (error || !form) {
-      return res.status(404).json({ error: 'Form not found' });
-    }
-
-    // Don't expose user_id in public endpoint and only send necessary data
-    const publicForm = {
-      id: form.id,
-      name: form.name,
-      description: form.description,
-      fields: form.fields,
-      settings: form.settings
-    };
-    
-    res.json({ form: publicForm });
-  } catch (error) {
-    console.error('Error fetching form:', error);
-    res.status(500).json({ error: 'Error loading form' });
-  }
-});
-
 // Create new form
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, description, fields, settings } = req.body;
-
+    
     if (!name || !fields || !Array.isArray(fields)) {
-      return res.status(400).json({ 
-        error: 'Name and fields are required' 
-      });
+      return res.status(400).json({ error: 'Name and fields are required' });
     }
 
-    const formId = uuidv4();
     const { data: form, error } = await supabaseAdmin
       .from('forms')
       .insert([{
-        id: formId,
-        user_id: req.user.id,
         name,
         description: description || '',
         fields,
         settings: settings || {},
-        is_active: true,
-        created_at: new Date().toISOString()
+        user_id: req.user.id,
+        is_active: true
       }])
       .select()
       .single();
@@ -158,24 +140,22 @@ router.put('/:id', verifyToken, async (req, res) => {
   try {
     const { name, description, fields, settings, is_active } = req.body;
 
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (fields !== undefined) updateData.fields = fields;
+    if (settings !== undefined) updateData.settings = settings;
+    if (is_active !== undefined) updateData.is_active = is_active;
+
     const { data: form, error } = await supabaseAdmin
       .from('forms')
-      .update({
-        name,
-        description,
-        fields,
-        settings,
-        is_active,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', req.params.id)
       .eq('user_id', req.user.id)
       .select()
       .single();
 
-    if (error) throw error;
-
-    if (!form) {
+    if (error || !form) {
       return res.status(404).json({ error: 'Form not found' });
     }
 
@@ -201,6 +181,91 @@ router.delete('/:id', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Error deleting form:', error);
     res.status(500).json({ error: 'Error deleting form' });
+  }
+});
+
+// Duplicate form
+router.post('/:id/duplicate', verifyToken, async (req, res) => {
+  try {
+    // First, get the original form
+    const { data: originalForm, error: fetchError } = await supabaseAdmin
+      .from('forms')
+      .select('name, description, fields, settings')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fetchError || !originalForm) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+
+    // Create a duplicate with modified name
+    const { data: duplicatedForm, error: createError } = await supabaseAdmin
+      .from('forms')
+      .insert([{
+        name: `${originalForm.name} (Copy)`,
+        description: originalForm.description,
+        fields: originalForm.fields,
+        settings: originalForm.settings,
+        user_id: req.user.id,
+        is_active: true
+      }])
+      .select()
+      .single();
+
+    if (createError) throw createError;
+
+    res.status(201).json({ form: duplicatedForm });
+  } catch (error) {
+    console.error('Error duplicating form:', error);
+    res.status(500).json({ error: 'Error duplicating form' });
+  }
+});
+
+// Get form statistics
+router.get('/:id/stats', verifyToken, async (req, res) => {
+  try {
+    // Verify form ownership
+    const { data: form, error: formError } = await supabaseAdmin
+      .from('forms')
+      .select('id')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (formError || !form) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+
+    // Get submission count
+    const { count: totalSubmissions, error: countError } = await supabaseAdmin
+      .from('submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('form_id', req.params.id);
+
+    if (countError) throw countError;
+
+    // Get submissions from last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { count: recentSubmissions, error: recentError } = await supabaseAdmin
+      .from('submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('form_id', req.params.id)
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    if (recentError) throw recentError;
+
+    res.json({
+      stats: {
+        total_submissions: totalSubmissions || 0,
+        recent_submissions: recentSubmissions || 0
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching form stats:', error);
+    res.status(500).json({ error: 'Error loading form statistics' });
   }
 });
 

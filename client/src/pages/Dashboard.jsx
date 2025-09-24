@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { Search } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import Layout from '../components/Layout'
 import Loading from '../components/Loading'
@@ -14,6 +15,20 @@ const Dashboard = () => {
   const [error, setError] = useState('')
   const [initialLoad, setInitialLoad] = useState(true)
   const [lastFetchTime, setLastFetchTime] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Filter forms based on search query
+  const filteredForms = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return forms
+    }
+    
+    const query = searchQuery.toLowerCase().trim()
+    return forms.filter(form => 
+      form.name.toLowerCase().includes(query) ||
+      (form.description && form.description.toLowerCase().includes(query))
+    )
+  }, [forms, searchQuery])
 
   useEffect(() => {
     // Only fetch forms when we have a session and auth is not loading
@@ -135,9 +150,24 @@ window.addEventListener('message', function(e) {
       )}
 
       <PageHeader 
-        title="Dashboard" 
-        actionText="Show Details" 
-        actionLink="/forms/create" 
+        title="Dashboard"
+        searchField={
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
+            <input
+              type="text"
+              placeholder="Search forms..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm"
+              style={{ 
+                borderColor: 'var(--border-color)',
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--text-primary)'
+              }}
+            />
+          </div>
+        }
       />
 
       {loading ? (
@@ -148,9 +178,19 @@ window.addEventListener('message', function(e) {
         </div>
       ) : forms.length === 0 ? (
         <EmptyState />
+      ) : filteredForms.length === 0 ? (
+        <div className="text-center py-12">
+          <Search className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-secondary)' }} />
+          <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+            No forms found
+          </h3>
+          <p style={{ color: 'var(--text-secondary)' }}>
+            No forms match your search query "{searchQuery}"
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
-          {forms.map((form) => (
+          {filteredForms.map((form) => (
             <FormCard
               key={form.id}
               form={form}
