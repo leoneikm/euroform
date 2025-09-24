@@ -3,9 +3,9 @@
 # Euroform Deployment Script
 # Update these variables with your server details
 
-SERVER_IP="YOUR_SERVER_IP"
-SERVER_USER="root"  # or your username
-FRONTEND_PATH="/var/www/euroform"
+SERVER_IP="162.55.59.244"
+SERVER_USER="root"
+FRONTEND_PATH="/var/www/html"
 BACKEND_PATH="/var/www/euroform-api"
 PM2_APP_NAME="euroform-api"
 
@@ -107,15 +107,14 @@ ssh $SERVER_USER@$SERVER_IP << 'EOF'
 
     # Deploy frontend
     echo -e "${GREEN}Deploying frontend...${NC}"
-    sudo cp -r client/dist/* /var/www/euroform/
+    sudo cp -r client/dist/* /var/www/html/
 
     # Deploy backend
     echo -e "${GREEN}Deploying backend...${NC}"
     sudo cp -r server/* /var/www/euroform-api/
-    sudo cp package.json /var/www/euroform-api/
 
     # Set permissions
-    sudo chown -R www-data:www-data /var/www/euroform
+    sudo chown -R www-data:www-data /var/www/html
     sudo chown -R $USER:$USER /var/www/euroform-api
 
     # Install backend dependencies

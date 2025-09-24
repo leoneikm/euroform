@@ -3,14 +3,25 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const mailjet = Mailjet.apiConnect(
-  process.env.MAILJET_API_KEY,
-  process.env.MAILJET_SECRET_KEY
-);
+// Initialize Mailjet only if credentials are provided
+let mailjet = null;
+if (process.env.MAILJET_API_KEY && process.env.MAILJET_SECRET_KEY) {
+  try {
+    mailjet = Mailjet.apiConnect(
+      process.env.MAILJET_API_KEY,
+      process.env.MAILJET_SECRET_KEY
+    );
+    console.log('✅ Mailjet email service initialized');
+  } catch (error) {
+    console.warn('⚠️ Failed to initialize Mailjet:', error.message);
+  }
+} else {
+  console.log('ℹ️ Mailjet credentials not provided - email notifications disabled');
+}
 
 export const sendNotificationEmail = async ({ to, formName, submissionData, files, submissionId }) => {
   try {
-    if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
+    if (!mailjet) {
       console.log('Mailjet not configured, skipping email');
       return;
     }
